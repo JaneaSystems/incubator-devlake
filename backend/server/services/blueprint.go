@@ -101,7 +101,7 @@ func GetBlueprints(query *BlueprintQuery, shouldSanitize bool) ([]*models.Bluepr
 func GetBlueprint(blueprintId uint64, shouldSanitize bool) (*models.Blueprint, errors.Error) {
 	blueprint, err := bpManager.GetDbBlueprint(blueprintId)
 	if err != nil {
-		if db.IsErrorNotFound(err) {
+		if localdb.IsErrorNotFound(err) {
 			return nil, errors.NotFound.New("blueprint not found")
 		}
 		return nil, errors.Internal.Wrap(err, "error getting the blueprint from database")
@@ -122,7 +122,7 @@ func GetBlueprintByProjectName(projectName string) (*models.Blueprint, errors.Er
 	blueprint, err := bpManager.GetDbBlueprintByProjectName(projectName)
 	if err != nil {
 		// Allow specific projectName to fail to find the corresponding blueprint
-		if db.IsErrorNotFound(err) {
+		if localdb.IsErrorNotFound(err) {
 			return nil, nil
 		}
 		return nil, errors.Internal.Wrap(err, fmt.Sprintf("error getting the blueprint from database with project %s", projectName))
@@ -362,7 +362,7 @@ func MakePlanForBlueprint(blueprint *models.Blueprint, syncPolicy *models.SyncPo
 	metrics := make(map[string]json.RawMessage)
 	projectMetrics := make([]models.ProjectMetricSetting, 0)
 	if blueprint.ProjectName != "" {
-		err := db.All(&projectMetrics, dal.Where("project_name = ? AND enable = ?", blueprint.ProjectName, true))
+		err := localdb.All(&projectMetrics, dal.Where("project_name = ? AND enable = ?", blueprint.ProjectName, true))
 		if err != nil {
 			return nil, err
 		}

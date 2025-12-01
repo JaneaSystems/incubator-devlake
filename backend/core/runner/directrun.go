@@ -72,6 +72,7 @@ func DirectRun(cmd *cobra.Command, args []string, pluginTask plugin.PluginTask, 
 	}
 
 	// collect migration and run
+	basicRes.GetLogger().Info("🔄 Beginning migration initialization...")
 	migrator, err := InitMigrator(basicRes)
 	if err != nil {
 		panic(err)
@@ -80,7 +81,15 @@ func DirectRun(cmd *cobra.Command, args []string, pluginTask plugin.PluginTask, 
 	if migratable, ok := pluginTask.(plugin.PluginMigration); ok {
 		migrator.Register(migratable.MigrationScripts(), cmd.Use)
 	}
+	basicRes.GetLogger().Info("🔄 Beginning migration execture GetLocalDal...")
 	err = migrator.Execute()
+	if err != nil {
+		panic(err)
+	}
+	basicRes.GetLogger().Info("🔄 Beginning migration execture GetDal...")
+	basicRes.SwapDals()
+	err = migrator.Execute()
+	basicRes.SwapDals()
 	if err != nil {
 		panic(err)
 	}

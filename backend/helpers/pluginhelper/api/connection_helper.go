@@ -56,9 +56,9 @@ func NewConnectionHelper(
 	return &ConnectionApiHelper{
 		encryptionSecret: basicRes.GetConfig(plugin.EncodeKeyEnvStr),
 		log:              basicRes.GetLogger(),
-		db:               basicRes.GetDal(),
+		db:               basicRes.GetLocalDal(),
 		validator:        vld,
-		bpManager:        services.NewBlueprintManager(basicRes.GetDal()),
+		bpManager:        services.NewBlueprintManager(basicRes.GetLocalDal()),
 		pluginName:       pluginName,
 	}
 }

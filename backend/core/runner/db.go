@@ -40,15 +40,15 @@ import (
 )
 
 // NewGormDb creates a new *gorm.DB and set it up properly
-func NewGormDb(configReader config.ConfigReader, logger log.Logger) (*gorm.DB, errors.Error) {
+func NewGormDb(configReader config.ConfigReader, logger log.Logger, db_url string) (*gorm.DB, errors.Error) {
 	return NewGormDbEx(configReader, logger, &dal.SessionConfig{
 		PrepareStmt:            true,
 		SkipDefaultTransaction: true,
-	})
+	}, db_url)
 }
 
-// NewGormDbEx acts like NewGormDb but accept extra sessionConfig
-func NewGormDbEx(configReader config.ConfigReader, logger log.Logger, sessionConfig *dal.SessionConfig) (*gorm.DB, errors.Error) {
+// NewGormDbEx acts like NewGormDb but accept extra sessionConfig and optional db_url parameter
+func NewGormDbEx(configReader config.ConfigReader, logger log.Logger, sessionConfig *dal.SessionConfig, db_url string) (*gorm.DB, errors.Error) {
 	dbLoggingLevel := gormLogger.Error
 	switch strings.ToLower(configReader.GetString("DB_LOGGING_LEVEL")) {
 	case "silent":
@@ -81,7 +81,8 @@ func NewGormDbEx(configReader config.ConfigReader, logger log.Logger, sessionCon
 		// PrepareStmt:            sessionConfig.PrepareStmt,
 		SkipDefaultTransaction: sessionConfig.SkipDefaultTransaction,
 	}
-	dbUrl := configReader.GetString("DB_URL")
+	// Use provided db_url if given, otherwise fall back to config
+	var dbUrl = db_url
 	if dbUrl == "" {
 		return nil, errors.BadInput.New("DB_URL is required, please set it in environment variable or .env file")
 	}

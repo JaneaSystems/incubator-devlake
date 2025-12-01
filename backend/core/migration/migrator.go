@@ -19,12 +19,13 @@ package migration
 
 import (
 	"fmt"
+	"sort"
+	"sync"
+
 	"github.com/apache/incubator-devlake/core/context"
 	"github.com/apache/incubator-devlake/core/errors"
 	core "github.com/apache/incubator-devlake/core/log"
 	"github.com/apache/incubator-devlake/core/plugin"
-	"sort"
-	"sync"
 )
 
 type scriptWithComment struct {
@@ -127,10 +128,19 @@ func NewMigrator(basicRes context.BasicRes) (plugin.Migrator, errors.Error) {
 		basicRes: basicRes,
 		logger:   basicRes.GetLogger().Nested("migrator"),
 	}
+	basicRes.SwapDals()
+	basicRes.GetLogger().Info("LoadExecute GetDal()")
 	err := m.loadExecuted()
 	if err != nil {
 		return nil, err
 	}
+
+	//basicRes.GetLogger().Info("LoadExecute centralDals()")
+	//err2 := m.loadExecuted()
+	//if err2 != nil {
+	//	return nil, err
+	//}
+	basicRes.SwapDals()
 	return m, nil
 }
 

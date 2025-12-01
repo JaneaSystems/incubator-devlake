@@ -32,4 +32,6 @@ type BasicRes interface {
 	NestedLogger(name string) BasicRes
 	ReplaceLogger(logger log.Logger) BasicRes
 	GetDal() dal.Dal
+	GetLocalDal() dal.Dal
+	SwapDals()
 }

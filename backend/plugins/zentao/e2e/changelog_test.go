@@ -58,7 +58,7 @@ func TestZentaoDbGetDataFlow(t *testing.T) {
 	v.Set("DB_IDLE_CONNS", cfg.GetInt("DB_IDLE_CONNS"))
 	v.Set("DbMaxConns", cfg.GetInt("DB_MAX_CONNS"))
 
-	rgorm, err := runner.NewGormDb(v, dataflowTester.Log)
+	rgorm, err := runner.NewGormDb(v, dataflowTester.Log, cfg.GetString("DB_URL"))
 	if err != nil {
 		return
 	}

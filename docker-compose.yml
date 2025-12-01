@@ -1,0 +1,48 @@
+version: "3"
+
+services:
+  devlake:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      DB_URL: "mysql://devlake:devlake123@mysql-local:3306/devlake_local?charset=utf8mb4&parseTime=True&loc=Local"
+      GITHUB_CENTRAL_DB_DSN: ""
+      DISABLE_ENCRYPTION: "1"
+      ENCRYPTION_SECRET: "SuperSecretKeyForProduction1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    restart: always
+    depends_on:
+      mysql-local:
+        condition: service_started
+  
+
+  mysql-local:
+    image: mysql:8.0
+    container_name: mysql-local
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: devlake_local
+      MYSQL_USER: devlake
+      MYSQL_PASSWORD: devlake123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_local_data:/var/lib/mysql
+    restart: always
+
+  config-ui:
+    build:
+      context: ./config-ui
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      DEVLAKE_ENDPOINT: devlake:8080
+    restart: always
+    depends_on:
+      - devlake
+
+volumes:
+  mysql_local_data:

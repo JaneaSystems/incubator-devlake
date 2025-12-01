@@ -213,6 +213,11 @@ func (d *DevlakeClient) GetDal() dal.Dal {
 	return dalgorm.NewDalgorm(d.db)
 }
 
+// GetLocalDal get a reference to the local dal.Dal used by the server
+func (d *DevlakeClient) GetLocalDal() dal.Dal {
+	return dalgorm.NewDalgorm(d.db)
+}
+
 // AwaitPluginAvailability wait for this plugin to become available on the server given a timeout. Returns false if this condition does not get met.
 func (d *DevlakeClient) AwaitPluginAvailability(pluginName string, timeout time.Duration) {
 	if d.isRemote {

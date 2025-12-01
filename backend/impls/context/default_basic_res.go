@@ -26,9 +26,10 @@ import (
 
 // DefaultBasicRes offers a common implementation for the  BasisRes interface
 type DefaultBasicRes struct {
-	cfg    config.ConfigReader
-	logger log.Logger
-	db     dal.Dal
+	cfg       config.ConfigReader
+	logger    log.Logger
+	db        dal.Dal
+	centralDb dal.Dal
 }
 
 // GetConfigReader returns the ConfigReader instance
@@ -49,24 +50,38 @@ func (c *DefaultBasicRes) GetLogger() log.Logger {
 // NestedLogger returns a new DefaultBasicRes with a new nested logger
 func (c *DefaultBasicRes) NestedLogger(name string) context.BasicRes {
 	return &DefaultBasicRes{
-		cfg:    c.cfg,
-		logger: c.logger.Nested(name),
-		db:     c.db,
+		cfg:       c.cfg,
+		logger:    c.logger.Nested(name),
+		db:        c.db,
+		centralDb: c.centralDb,
 	}
 }
 
 // ReplaceLogger returns a new DefaultBasicRes with the specified logger
 func (c *DefaultBasicRes) ReplaceLogger(logger log.Logger) context.BasicRes {
 	return &DefaultBasicRes{
-		cfg:    c.cfg,
-		logger: logger,
-		db:     c.db,
+		cfg:       c.cfg,
+		logger:    logger,
+		db:        c.db,
+		centralDb: c.centralDb,
 	}
 }
 
 // GetDal returns the Dal instance
 func (c *DefaultBasicRes) GetDal() dal.Dal {
+	return c.centralDb
+}
+
+// GetLocalDal returns the local Dal instance
+func (c *DefaultBasicRes) GetLocalDal() dal.Dal {
 	return c.db
+}
+
+func (c *DefaultBasicRes) SwapDals() {
+	c.logger.Info("SwapDals called")
+	var tmp = c.db
+	c.db = c.centralDb
+	c.centralDb = tmp
 }
 
 // NewDefaultBasicRes creates a new DefaultBasicRes instance
@@ -74,10 +89,12 @@ func NewDefaultBasicRes(
 	cfg config.ConfigReader,
 	logger log.Logger,
 	db dal.Dal,
+	centralDb dal.Dal,
 ) *DefaultBasicRes {
 	return &DefaultBasicRes{
-		cfg:    cfg,
-		logger: logger,
-		db:     db,
+		cfg:       cfg,
+		logger:    logger,
+		db:        db,
+		centralDb: centralDb,
 	}
 }

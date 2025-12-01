@@ -232,7 +232,7 @@ func (t *DataFlowTester) SubtaskContext(taskData interface{}) plugin.SubTaskCont
 			FullSync: true,
 		},
 	}
-	return contextimpl.NewStandaloneSubTaskContext(context.Background(), runner.CreateBasicRes(t.Cfg, t.Log, t.Db), t.Name, taskData, t.Name, syncPolicy)
+	return contextimpl.NewStandaloneSubTaskContext(context.Background(), runner.CreateBasicRes(t.Cfg, t.Log, t.Db, nil), t.Name, taskData, t.Name, syncPolicy)
 }
 
 func filterColumn(column dal.ColumnMeta, opts TableOptions) bool {

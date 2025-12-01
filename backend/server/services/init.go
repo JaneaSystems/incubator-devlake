@@ -37,6 +37,7 @@ import (
 var cfg config.ConfigReader
 var logger log.Logger
 var db dal.Dal
+var localdb dal.Dal
 
 var bpManager *services.BlueprintManager
 var basicRes context.BasicRes
@@ -64,7 +65,8 @@ func InitResources() {
 	cfg = basicRes.GetConfigReader()
 	logger = basicRes.GetLogger()
 	db = basicRes.GetDal()
-	bpManager = services.NewBlueprintManager(db)
+	localdb = basicRes.GetLocalDal()
+	bpManager = services.NewBlueprintManager(localdb)
 	// initialize db migrator
 	migrator, err = runner.InitMigrator(basicRes)
 	if err != nil {
@@ -152,12 +154,21 @@ func ExecuteMigration() errors.Error {
 	serviceStatus = SERVICE_STATUS_MIGRATING
 	statusLock.Unlock() // unlock to allow other API requests to check the status
 	// apply all pending migration scripts
+	logger.Info("Execute1")
+	basicRes.SwapDals()
 	err := migrator.Execute()
 	if err != nil {
-		logger.Error(err, "failed to execute migration")
+		logger.Error(err, "failed to execute migration err")
 		return err
 	}
-
+	//basicRes.SwapDals()
+	//logger.Info("Execute2")
+	//err2 := migrator.Execute()
+	//if err2 != nil {
+	//	logger.Error(err2, "failed to execute migration err2")
+	//	return err2
+	//}
+	basicRes.SwapDals()
 	// cronjob for blueprint triggering
 	location := cron.WithLocation(time.UTC)
 	cronManager = cron.New(location)

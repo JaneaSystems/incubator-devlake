@@ -143,7 +143,7 @@ func GetDbPipelines(query *PipelineQuery) ([]*models.Pipeline, int64, errors.Err
 	}
 
 	// count total records
-	count, err := db.Count(clauses...)
+	count, err := localdb.Count(clauses...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -155,7 +155,7 @@ func GetDbPipelines(query *PipelineQuery) ([]*models.Pipeline, int64, errors.Err
 		dal.Limit(query.GetPageSize()),
 	)
 	dbPipelines := make([]*models.Pipeline, 0)
-	err = db.All(&dbPipelines, clauses...)
+	err = localdb.All(&dbPipelines, clauses...)
 	if err != nil {
 		return nil, 0, errors.Default.Wrap(err, "error getting DB count of pipelines")
 	}
@@ -174,9 +174,9 @@ func GetDbPipelines(query *PipelineQuery) ([]*models.Pipeline, int64, errors.Err
 // GetDbPipeline by id
 func GetDbPipeline(pipelineId uint64) (*models.Pipeline, errors.Error) {
 	dbPipeline := &models.Pipeline{}
-	err := db.First(dbPipeline, dal.Where("id = ?", pipelineId))
+	err := localdb.First(dbPipeline, dal.Where("id = ?", pipelineId))
 	if err != nil {
-		if db.IsErrorNotFound(err) {
+		if localdb.IsErrorNotFound(err) {
 			return nil, errors.NotFound.New("pipeline not found")
 		}
 		return nil, errors.Internal.Wrap(err, "error getting the pipeline from database")

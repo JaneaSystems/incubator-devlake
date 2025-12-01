@@ -19,10 +19,11 @@ package services
 
 import (
 	"fmt"
-	"golang.org/x/exp/slices"
-	"golang.org/x/sync/errgroup"
 	"strings"
 	"time"
+
+	"golang.org/x/exp/slices"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/apache/incubator-devlake/core/dal"
 	"github.com/apache/incubator-devlake/core/errors"
@@ -50,12 +51,19 @@ func (query *ProjectQuery) GetKeyword() string {
 	return ""
 }
 
+// getLocalProjectDb returns local database accessor for project operations
+func getLocalProjectDb() dal.Dal {
+	return basicRes.GetLocalDal()
+}
+
 // GetProjects returns a paginated list of Projects based on `query`
 func GetProjects(query *ProjectQuery) ([]*models.ApiOutputProject, int64, errors.Error) {
 	// verify input
 	if err := VerifyStruct(query); err != nil {
 		return nil, 0, err
 	}
+	// Use local database for projects page
+	localDb := getLocalProjectDb()
 	clauses := []dal.Clause{
 		dal.From(&models.Project{}),
 	}
@@ -63,7 +71,7 @@ func GetProjects(query *ProjectQuery) ([]*models.ApiOutputProject, int64, errors
 		clauses = append(clauses, dal.Where("LOWER(name) LIKE ?", "%"+query.GetKeyword()+"%"))
 	}
 
-	count, err := db.Count(clauses...)
+	count, err := localDb.Count(clauses...)
 	if err != nil {
 		return nil, 0, errors.Default.Wrap(err, "error getting DB count of project")
 	}
@@ -74,7 +82,7 @@ func GetProjects(query *ProjectQuery) ([]*models.ApiOutputProject, int64, errors
 		dal.Limit(query.GetPageSize()),
 	)
 	projects := make([]*models.Project, count)
-	err = db.All(&projects, clauses...)
+	err = localDb.All(&projects, clauses...)
 	if err != nil {
 		return nil, 0, errors.Default.Wrap(err, "error finding DB project")
 	}
@@ -107,8 +115,9 @@ func CreateProject(projectInput *models.ApiInputProject) (*models.ApiOutputProje
 	}
 
 	// create transaction to updte multiple tables
+	localDb := getLocalProjectDb()
 	var err errors.Error
-	tx := db.Begin()
+	tx := localDb.Begin()
 	defer func() {
 		if r := recover(); r != nil || err != nil {
 			err = tx.Rollback()
@@ -121,9 +130,9 @@ func CreateProject(projectInput *models.ApiInputProject) (*models.ApiOutputProje
 	// create project first
 	project := &models.Project{}
 	project.BaseProject = projectInput.BaseProject
-	err = db.Create(project)
+	err = localDb.Create(project)
 	if err != nil {
-		if db.IsDuplicationError(err) {
+		if localDb.IsDuplicationError(err) {
 			return nil, errors.BadInput.New(fmt.Sprintf("A project with name [%s] already exists", project.Name))
 		}
 		return nil, errors.Default.Wrap(err, "error creating DB project")
@@ -184,7 +193,8 @@ func GetProject(name string) (*models.ApiOutputProject, errors.Error) {
 		return nil, errors.BadInput.New("project name is missing")
 	}
 	// load project
-	project, err := getProjectByName(db, name)
+	localDb := getLocalProjectDb()
+	project, err := getProjectByName(localDb, name)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +213,8 @@ func PatchProject(name string, body map[string]interface{}) (*models.ApiOutputPr
 	}
 
 	// wrap all operation inside a transaction
-	tx := db.Begin()
+	localDb := getLocalProjectDb()
+	tx := localDb.Begin()
 	defer func() {
 		if r := recover(); r != nil || err != nil {
 			err = tx.Rollback()
@@ -354,7 +365,8 @@ func DeleteProject(name string) errors.Error {
 		return errors.BadInput.New("project name is missing")
 	}
 	// verify exists
-	_, err := getProjectByName(db, name)
+	localDb := getLocalProjectDb()
+	_, err := getProjectByName(localDb, name)
 	if err != nil {
 		return err
 	}
@@ -370,7 +382,7 @@ func DeleteProject(name string) errors.Error {
 	if err != nil {
 		return err
 	}
-	tx := db.Begin()
+	tx := localDb.Begin()
 	defer func() {
 		if r := recover(); r != nil || err != nil {
 			err = tx.Rollback()
@@ -405,7 +417,8 @@ func DeleteProject(name string) errors.Error {
 func deleteProjectBlueprint(projectName string) errors.Error {
 	bp, err := bpManager.GetDbBlueprintByProjectName(projectName)
 	if err != nil {
-		if !db.IsErrorNotFound(err) {
+		localDb := getLocalProjectDb()
+		if !localDb.IsErrorNotFound(err) {
 			return errors.Default.Wrap(err, fmt.Sprintf("error finding blueprint associated with project %s", projectName))
 		}
 	} else {
@@ -453,8 +466,9 @@ func makeProjectOutput(project *models.Project, withLastPipeline bool) (*models.
 	projectOutput := &models.ApiOutputProject{}
 	projectOutput.Project = *project
 	// load project metrics
+	localDb := getLocalProjectDb()
 	projectMetrics := make([]models.ProjectMetricSetting, 0)
-	err := db.All(&projectMetrics, dal.Where("project_name = ?", projectOutput.Name))
+	err := localDb.All(&projectMetrics, dal.Where("project_name = ?", projectOutput.Name))
 	if err != nil {
 		return nil, errors.Default.Wrap(err, "failed to load project metrics")
 	}

@@ -47,12 +47,13 @@ type ModelSrvHelper[M dal.Tabler] struct {
 }
 
 func NewModelSrvHelper[M dal.Tabler](basicRes context.BasicRes, searchColumns []string) *ModelSrvHelper[M] {
+	return NewModelSrvHelperWithDb[M](basicRes, searchColumns, basicRes.GetLocalDal())
+}
+
+func NewModelSrvHelperWithDb[M dal.Tabler](basicRes context.BasicRes, searchColumns []string, db dal.Dal) *ModelSrvHelper[M] {
 	m := new(M)
 	modelName := fmt.Sprintf("%T", m)
-	db := basicRes.GetDal()
-	if db == nil {
-		db = basicRes.GetDal()
-	}
+
 	pk := errors.Must1(dal.GetPrimarykeyColumns(db, *m))
 	pkWhere := ""
 	for _, col := range pk {

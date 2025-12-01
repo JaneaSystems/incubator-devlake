@@ -224,7 +224,7 @@ func (p Zentao) PrepareTaskData(taskCtx plugin.TaskContext, options map[string]i
 		v.Set("DB_IDLE_CONNS", connection.DbIdleConns)
 		v.Set("DbMaxConns", connection.DbMaxConns)
 
-		rgorm, err := runner.NewGormDb(v, taskCtx.GetLogger())
+		rgorm, err := runner.NewGormDb(v, taskCtx.GetLogger(), connection.DbUrl)
 		if err != nil {
 			return nil, errors.Default.Wrap(err, fmt.Sprintf("failed to connect to the zentao remote databases %s", connection.DbUrl))
 		}

@@ -108,6 +108,21 @@ func (r remoteContextImpl) GetDal() dal.Dal {
 	return nil
 }
 
+func (r remoteContextImpl) GetLocalDal() dal.Dal {
+	if r.parent != nil {
+		return r.parent.GetLocalDal()
+	}
+	return nil
+}
+
+func (r remoteContextImpl) SwapDals() {
+	if r.parent != nil {
+		if swappable, ok := r.parent.(interface{ SwapDals() }); ok {
+			swappable.SwapDals()
+		}
+	}
+}
+
 func (r remoteContextImpl) GetName() string {
 	if r.parent != nil {
 		return r.parent.GetName()

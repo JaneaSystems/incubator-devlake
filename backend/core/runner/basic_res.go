@@ -19,6 +19,8 @@ package runner
 
 import (
 	"fmt"
+	"sync"
+
 	"github.com/apache/incubator-devlake/core/config"
 	"github.com/apache/incubator-devlake/core/context"
 	"github.com/apache/incubator-devlake/core/log"
@@ -27,7 +29,6 @@ import (
 	"github.com/apache/incubator-devlake/impls/dalgorm"
 	"github.com/apache/incubator-devlake/impls/logruslog"
 	"gorm.io/gorm"
-	"sync"
 )
 
 var app_lock sync.Mutex
@@ -45,15 +46,20 @@ func CreateAppBasicRes() context.BasicRes {
 	app_lock.Unlock()
 	cfg := config.GetConfig()
 	logger := logruslog.Global
-	db, err := NewGormDb(cfg, logger)
+	db, err := NewGormDb(cfg, logger, cfg.GetString("DB_URL"))
+	if err != nil {
+		panic(err)
+	}
+
+	centralDb, err := NewGormDb(cfg, logger, cfg.GetString("GITHUB_CENTRAL_DB_DSN"))
 	if err != nil {
 		panic(err)
 	}
 	dalgorm.Init(cfg.GetString(plugin.EncodeKeyEnvStr))
-	return CreateBasicRes(cfg, logger, db)
+	return CreateBasicRes(cfg, logger, db, centralDb)
 }
 
 // CreateBasicRes returns a BasicRes based on what was given
-func CreateBasicRes(cfg config.ConfigReader, logger log.Logger, db *gorm.DB) context.BasicRes {
-	return contextimpl.NewDefaultBasicRes(cfg, logger, dalgorm.NewDalgorm(db))
+func CreateBasicRes(cfg config.ConfigReader, logger log.Logger, db *gorm.DB, centralDb *gorm.DB) context.BasicRes {
+	return contextimpl.NewDefaultBasicRes(cfg, logger, dalgorm.NewDalgorm(db), dalgorm.NewDalgorm(centralDb))
 }

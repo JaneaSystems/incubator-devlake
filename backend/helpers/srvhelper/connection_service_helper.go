@@ -42,8 +42,10 @@ func NewConnectionSrvHelper[
 	basicRes context.BasicRes,
 	pluginName string,
 ) *ConnectionSrvHelper[C, S, SC] {
+	dal := basicRes.GetLocalDal()
+	basicRes.GetLogger().Info("DEBUG: NewConnectionSrvHelper initialized for plugin %s using GetLocalDal()", pluginName)
 	return &ConnectionSrvHelper[C, S, SC]{
-		ModelSrvHelper: NewModelSrvHelper[C](basicRes, nil),
+		ModelSrvHelper: NewModelSrvHelperWithDb[C](basicRes, nil, dal),
 		pluginName:     pluginName,
 	}
 }
