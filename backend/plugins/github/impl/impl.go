@@ -287,7 +287,7 @@ func EnrichOptions(taskCtx plugin.TaskContext,
 	}
 	logger := taskCtx.GetLogger()
 	// for advanced mode or others which we only have name, for bp v200, we have githubId
-	err = taskCtx.GetDal().First(&githubRepo, dal.Where(
+	err = taskCtx.GetLocalDal().First(&githubRepo, dal.Where(
 		"connection_id = ? AND( full_name = ? OR github_id = ?)",
 		op.ConnectionId, op.Name, op.GithubId))
 	if err == nil {
@@ -297,7 +297,7 @@ func EnrichOptions(taskCtx plugin.TaskContext,
 			op.ScopeConfigId = githubRepo.ScopeConfigId
 		}
 	} else {
-		if taskCtx.GetDal().IsErrorNotFound(err) && op.Name != "" {
+		if taskCtx.GetLocalDal().IsErrorNotFound(err) && op.Name != "" {
 			var repo *tasks.GithubApiRepo
 			repo, err = api.MemorizedGetApiRepo(repo, op, apiClient)
 			if err != nil {
@@ -305,7 +305,7 @@ func EnrichOptions(taskCtx plugin.TaskContext,
 			}
 			logger.Debug(fmt.Sprintf("Current repo: %s", repo.FullName))
 			scope := convertApiRepoToScope(repo, op.ConnectionId)
-			err = taskCtx.GetDal().CreateIfNotExist(scope)
+			err = taskCtx.GetLocalDal().CreateIfNotExist(scope)
 			if err != nil {
 				return err
 			}
@@ -317,7 +317,7 @@ func EnrichOptions(taskCtx plugin.TaskContext,
 	// Set GithubScopeConfig if it's nil, this has lower priority
 	if op.ScopeConfig == nil && op.ScopeConfigId != 0 {
 		var scopeConfig models.GithubScopeConfig
-		db := taskCtx.GetDal()
+		db := taskCtx.GetLocalDal()
 		err = db.First(&scopeConfig, dal.Where("id = ?", githubRepo.ScopeConfigId))
 		if err != nil && !db.IsErrorNotFound(err) {
 			return errors.BadInput.Wrap(err, "fail to get scopeConfig")

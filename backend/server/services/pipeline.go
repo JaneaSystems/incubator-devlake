@@ -114,14 +114,14 @@ func pipelineServiceInit() {
 }
 
 func markInterruptedPipelineAs(status string) {
-	errors.Must(db.UpdateColumns(
+	errors.Must(localdb.UpdateColumns(
 		&models.Pipeline{},
 		[]dal.DalSet{
 			{ColumnName: "status", Value: status},
 		},
 		dal.Where("status = ?", models.TASK_RUNNING),
 	))
-	errors.Must(db.UpdateColumns(
+	errors.Must(localdb.UpdateColumns(
 		&models.Task{},
 		[]dal.DalSet{
 			{ColumnName: "status", Value: status},
@@ -251,7 +251,7 @@ func GetPipelineLogsArchivePath(pipeline *models.Pipeline) (string, errors.Error
 }
 
 func dequeuePipeline(runningParallelLabels []string) (pipeline *models.Pipeline, err errors.Error) {
-	txHelper := dbhelper.NewTxHelper(basicRes, &err)
+	txHelper := dbhelper.NewTxHelper(basicRes, &err, true)
 	defer txHelper.End()
 	tx := txHelper.Begin()
 	// mysql read lock, not sure if it works for postgresql
@@ -373,9 +373,9 @@ func getProjectName(pipeline *models.Pipeline) (string, errors.Error) {
 		return "", nil
 	}
 	dbBlueprint := &models.Blueprint{}
-	err := db.First(dbBlueprint, dal.Where("id = ?", blueprintId))
+	err := localdb.First(dbBlueprint, dal.Where("id = ?", blueprintId))
 	if err != nil {
-		if db.IsErrorNotFound(err) {
+		if localdb.IsErrorNotFound(err) {
 			return "", errors.NotFound.New(fmt.Sprintf("blueprint(id: %d) not found", blueprintId))
 		}
 		return "", errors.Internal.Wrap(err, "error getting the blueprint from database")
@@ -418,19 +418,19 @@ func NotifyExternal(pipelineId uint64) errors.Error {
 func CancelPipeline(pipelineId uint64) errors.Error {
 	// prevent RunPipelineInQueue from consuming pending pipelines
 	pipeline := &models.Pipeline{}
-	err := db.First(pipeline, dal.Where("id = ?", pipelineId))
+	err := localdb.First(pipeline, dal.Where("id = ?", pipelineId))
 	if err != nil {
 		return errors.BadInput.New("pipeline not found")
 	}
 	if pipeline.Status == models.TASK_CREATED || pipeline.Status == models.TASK_RERUN {
 		pipeline.Status = models.TASK_CANCELLED
-		err = db.Update(pipeline)
+		err = localdb.Update(pipeline)
 		if err != nil {
 			return errors.Default.Wrap(err, "faile to update pipeline")
 		}
 		// now, with RunPipelineInQueue being block and target pipeline got updated
 		// we should update the related tasks as well
-		err = db.UpdateColumn(
+		err = localdb.UpdateColumn(
 			&models.Task{},
 			"status", models.TASK_CANCELLED,
 			dal.Where("pipeline_id = ?", pipelineId),
@@ -472,7 +472,7 @@ func getPipelineLogsPath(pipeline *models.Pipeline) (string, errors.Error) {
 func RerunPipeline(pipelineId uint64, task *models.Task) (tasks []*models.Task, err errors.Error) {
 	// prevent pipeline executor from doing anything that might jeopardize the integrity
 	pipeline := &models.Pipeline{}
-	txHelper := dbhelper.NewTxHelper(basicRes, &err)
+	txHelper := dbhelper.NewTxHelper(basicRes, &err, true)
 	tx := txHelper.Begin()
 	defer txHelper.End()
 	err = txHelper.LockTablesTimeout(2*time.Second, dal.LockTables{

@@ -44,7 +44,7 @@ func RunTask(
 	progress chan plugin.RunningProgress,
 	taskId uint64,
 ) (err errors.Error) {
-	db := basicRes.GetDal()
+	db := basicRes.GetLocalDal()
 	task := &models.Task{}
 	if err := db.First(task, dal.Where("id = ?", taskId)); err != nil {
 		return err
@@ -286,7 +286,7 @@ func RunPluginSubTasks(
 		}
 		subtask = append(subtask, s)
 	}
-	if err := basicRes.GetDal().CreateOrUpdate(subtask); err != nil {
+	if err := basicRes.GetLocalDal().CreateOrUpdate(subtask); err != nil {
 		basicRes.GetLogger().Error(err, "error writing subtask list to DB")
 	}
 
@@ -315,7 +315,7 @@ func RunPluginSubTasks(
 		subtaskFinished := false
 		if !subtaskMeta.ForceRunOnResume {
 			if task.ID > 0 {
-				sfc := errors.Must1(basicRes.GetDal().Count(
+				sfc := errors.Must1(basicRes.GetLocalDal().Count(
 					dal.From(&models.Subtask{}), dal.Where("task_id = ? AND name = ? AND finished_at IS NOT NULL", task.ID, subtaskMeta.Name),
 				),
 				)
@@ -333,7 +333,7 @@ func RunPluginSubTasks(
 				err = errors.SubtaskErr.Wrap(err, fmt.Sprintf("subtask %s ended unexpectedly", subtaskMeta.Name), errors.WithData(&subtaskMeta))
 				logger.Error(err, "")
 				where := dal.Where("task_id = ? and name = ?", task.ID, subtaskCtx.GetName())
-				if err := basicRes.GetDal().UpdateColumns(subtask, []dal.DalSet{
+				if err := basicRes.GetLocalDal().UpdateColumns(subtask, []dal.DalSet{
 					{ColumnName: "is_failed", Value: true},
 					{ColumnName: "message", Value: err.Error()},
 				}, where); err != nil {
@@ -366,7 +366,7 @@ func UpdateProgressDetail(basicRes context.BasicRes, taskId uint64, progressDeta
 		progressDetail.FinishedSubTasks = p.Current
 		// TODO: get rid of db update
 		pct := float32(p.Current) / float32(p.Total)
-		err := basicRes.GetDal().UpdateColumn(task, "progress", pct)
+		err := basicRes.GetLocalDal().UpdateColumn(task, "progress", pct)
 		if err != nil {
 			basicRes.GetLogger().Error(err, "failed to update progress")
 		}
@@ -427,7 +427,7 @@ func runSubtask(
 
 func recordSubtask(basicRes context.BasicRes, subtask *models.Subtask) {
 	where := dal.Where("task_id = ? and name = ?", subtask.TaskID, subtask.Name)
-	if err := basicRes.GetDal().UpdateColumns(subtask, []dal.DalSet{
+	if err := basicRes.GetLocalDal().UpdateColumns(subtask, []dal.DalSet{
 		{ColumnName: "began_at", Value: subtask.BeganAt},
 		{ColumnName: "finished_at", Value: subtask.FinishedAt},
 		{ColumnName: "spent_seconds", Value: subtask.SpentSeconds},

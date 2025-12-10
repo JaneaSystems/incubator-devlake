@@ -20,13 +20,14 @@ package services
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/apache/incubator-devlake/core/dal"
 	"github.com/apache/incubator-devlake/core/errors"
 	"github.com/apache/incubator-devlake/core/log"
 	"github.com/apache/incubator-devlake/core/models"
 	"github.com/apache/incubator-devlake/core/runner"
 	"github.com/apache/incubator-devlake/impls/logruslog"
-	"time"
 )
 
 type pipelineRunner struct {
@@ -97,7 +98,7 @@ func runPipeline(pipelineId uint64) errors.Error {
 		globalPipelineLog.Error(err, "compute pipeline status failed")
 		return err
 	}
-	err = db.Update(dbPipeline)
+	err = localdb.Update(dbPipeline)
 	if err != nil {
 		globalPipelineLog.Error(err, "update pipeline state failed")
 		return err
@@ -145,7 +146,7 @@ func ComputePipelineStatus(pipeline *models.Pipeline, isCancelled bool) (string,
 
 // GetLatestTasksOfPipeline returns latest tasks (reran tasks are excluding) of specified pipeline
 func GetLatestTasksOfPipeline(pipeline *models.Pipeline) ([]*models.Task, errors.Error) {
-	cursor, err := db.Cursor(
+	cursor, err := localdb.Cursor(
 		dal.From(&models.Task{}),
 		dal.Where("pipeline_id = ?", pipeline.ID),
 		dal.Orderby("id DESC"), // sort it by id so we can hit the latest task first for the RERUNed row/col
@@ -160,7 +161,7 @@ func GetLatestTasksOfPipeline(pipeline *models.Pipeline) ([]*models.Task, errors
 	memorized := make(map[rowcol]bool)
 	for cursor.Next() {
 		task := &models.Task{}
-		if e := db.Fetch(cursor, task); e != nil {
+		if e := localdb.Fetch(cursor, task); e != nil {
 			return nil, errors.Convert(e)
 		}
 		// dedupe reran tasks

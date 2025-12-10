@@ -35,7 +35,7 @@ func CreateDbPipeline(newPipeline *models.NewPipeline) (pipeline *models.Pipelin
 	createDbPipelineLock.Lock()
 	defer createDbPipelineLock.Unlock()
 	pipeline = &models.Pipeline{}
-	txHelper := dbhelper.NewTxHelper(basicRes, &err)
+	txHelper := dbhelper.NewTxHelper(basicRes, &err, true)
 	defer txHelper.End()
 	tx := txHelper.Begin()
 	errors.Must(txHelper.LockTablesTimeout(2*time.Second,
@@ -189,7 +189,7 @@ func GetDbPipeline(pipelineId uint64) (*models.Pipeline, errors.Error) {
 }
 
 func fillPipelineDetail(pipeline *models.Pipeline) errors.Error {
-	err := basicRes.GetDal().Pluck("name", &pipeline.Labels, dal.From(&models.DbPipelineLabel{}), dal.Where("pipeline_id = ?", pipeline.ID))
+	err := basicRes.GetLocalDal().Pluck("name", &pipeline.Labels, dal.From(&models.DbPipelineLabel{}), dal.Where("pipeline_id = ?", pipeline.ID))
 	if err != nil {
 		return errors.Internal.Wrap(err, "error getting the pipeline labels from database")
 	}

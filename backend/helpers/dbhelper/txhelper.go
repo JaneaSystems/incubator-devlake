@@ -30,10 +30,11 @@ import (
 
 // TxHelper is a helper for transaction management
 type TxHelper[E error] struct {
-	basicRes context.BasicRes
-	perr     *E
-	logger   log.Logger
-	tx       dal.Transaction
+	basicRes   context.BasicRes
+	perr       *E
+	logger     log.Logger
+	tx         dal.Transaction
+	useLocalDB bool
 }
 
 // Begin starts a transaction
@@ -41,7 +42,13 @@ func (l *TxHelper[E]) Begin() dal.Transaction {
 	if l.tx != nil {
 		panic(fmt.Errorf("Begin has been called"))
 	}
-	l.tx = l.basicRes.GetDal().Begin()
+	var dal dal.Dal
+	if l.useLocalDB {
+		dal = l.basicRes.GetLocalDal()
+	} else {
+		dal = l.basicRes.GetDal()
+	}
+	l.tx = dal.Begin()
 	return l.tx
 }
 
@@ -95,9 +102,13 @@ func (l *TxHelper[E]) End() {
 }
 
 // NewTxHelper creates a new TxHelper, the errorPointer is used to detect if any error was set
-func NewTxHelper[E error](basicRes context.BasicRes, errorPointer *E) *TxHelper[E] {
+func NewTxHelper[E error](basicRes context.BasicRes, errorPointer *E, useLocalDB ...bool) *TxHelper[E] {
 	if errorPointer == nil {
 		panic(fmt.Errorf("errorPointer is required"))
 	}
-	return &TxHelper[E]{basicRes: basicRes, perr: errorPointer, logger: basicRes.GetLogger()}
+	isLocalDB := false
+	if len(useLocalDB) > 0 {
+		isLocalDB = useLocalDB[0]
+	}
+	return &TxHelper[E]{basicRes: basicRes, perr: errorPointer, logger: basicRes.GetLogger(), useLocalDB: isLocalDB}
 }

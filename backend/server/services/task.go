@@ -86,7 +86,7 @@ func GetTasks(query *TaskQuery) ([]*models.Task, int64, errors.Error) {
 	}
 
 	// count total records
-	count, err := db.Count(clauses...)
+	count, err := localdb.Count(clauses...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -98,7 +98,7 @@ func GetTasks(query *TaskQuery) ([]*models.Task, int64, errors.Error) {
 		dal.Limit(query.GetPageSizeOr(10000)),
 	)
 	tasks := make([]*models.Task, 0)
-	err = db.All(&tasks, clauses...)
+	err = localdb.All(&tasks, clauses...)
 	if err != nil {
 		return nil, count, err
 	}
@@ -113,7 +113,7 @@ func GetTasks(query *TaskQuery) ([]*models.Task, int64, errors.Error) {
 // TODO: adopts GetLatestTasksOfPipeline
 func GetTasksWithLastStatus(pipelineId uint64, shouldSanitize bool, tx dal.Dal) ([]*models.Task, errors.Error) {
 	if tx == nil {
-		tx = db
+		tx = localdb
 	}
 	var tasks []*models.Task
 	err := tx.All(&tasks, dal.Where("pipeline_id = ?", pipelineId), dal.Orderby("id DESC"))
@@ -241,7 +241,7 @@ func RerunTask(taskId uint64) (*models.Task, errors.Error) {
 // GetSubTasksInfo returns subtask list of the pipeline, only the most recently subtasks would be returned
 func GetSubTasksInfo(pipelineId uint64, shouldSanitize bool, tx dal.Dal) (*models.SubTasksOuput, errors.Error) {
 	if tx == nil {
-		tx = db
+		tx = localdb
 	}
 	var tasks []*models.Task
 	err := tx.All(&tasks, dal.Where("pipeline_id = ?", pipelineId), dal.Orderby("id"))

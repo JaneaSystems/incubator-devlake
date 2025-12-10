@@ -34,7 +34,7 @@ func RunPipeline(
 	runTasks func([]uint64) errors.Error,
 ) errors.Error {
 	// load tasks for pipeline
-	db := basicRes.GetDal()
+	db := basicRes.GetLocalDal()
 	var tasks []models.Task
 	err := db.All(
 		&tasks,
@@ -60,7 +60,7 @@ func runPipelineTasks(
 	taskIds [][]uint64,
 	runTasks func([]uint64) errors.Error,
 ) errors.Error {
-	db := basicRes.GetDal()
+	db := basicRes.GetLocalDal()
 	log := basicRes.GetLogger()
 	// load pipeline from db
 	dbPipeline := &models.Pipeline{}

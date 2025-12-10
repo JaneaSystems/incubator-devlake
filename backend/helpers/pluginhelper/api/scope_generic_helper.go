@@ -127,7 +127,7 @@ func NewGenericScopeHelper[Conn any, Scope plugin.ToolLayerScope, ScopeConfig an
 	return &GenericScopeApiHelper[Conn, Scope, ScopeConfig]{
 		basicRes:         basicRes,
 		log:              basicRes.GetLogger(),
-		db:               basicRes.GetDal(),
+		db:               basicRes.GetLocalDal(),
 		validator:        vld,
 		reflectionParams: params,
 		dbHelper:         dbHelper,
