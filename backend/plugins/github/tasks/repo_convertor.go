@@ -76,7 +76,7 @@ var ConvertRepoMeta = plugin.SubTaskMeta{
 }
 
 func ConvertRepo(taskCtx plugin.SubTaskContext) errors.Error {
-	db := taskCtx.GetDal()
+	db := taskCtx.GetLocalDal()
 	data := taskCtx.GetData().(*GithubTaskData)
 	repoId := data.Options.GithubId
 

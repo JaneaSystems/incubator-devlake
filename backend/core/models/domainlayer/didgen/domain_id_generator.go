@@ -71,6 +71,10 @@ func (g *DomainIdGenerator) Generate(pkValues ...interface{}) string {
 	}
 	id := g.prefix
 	for i, pkField := range g.pk {
+		// Skip ConnectionId when it's the first primary key (used in two-database setup)
+		if i == 0 && pkField.Name == "ConnectionId" {
+			continue
+		}
 		// append pk
 		pkValue := pkValues[i]
 		id += ":" + fmt.Sprintf("%v", pkValue)
@@ -86,5 +90,6 @@ func (g *DomainIdGenerator) Generate(pkValues ...interface{}) string {
 			)))
 		}
 	}
+	fmt.Printf("DEBUG: Final ID=%s\n", id)
 	return id
 }
