@@ -54,11 +54,12 @@ var ConvertRunsMeta = plugin.SubTaskMeta{
 
 func ConvertRuns(taskCtx plugin.SubTaskContext) errors.Error {
 	db := taskCtx.GetDal()
+	localDb := taskCtx.GetLocalDal()
 	data := taskCtx.GetData().(*GithubTaskData)
 	repoId := data.Options.GithubId
 
 	repo := &models.GithubRepo{}
-	err := db.First(repo, dal.Where("connection_id = ? AND github_id = ?", data.Options.ConnectionId, data.Options.GithubId))
+	err := localDb.First(repo, dal.Where("connection_id = ? AND github_id = ?", data.Options.ConnectionId, data.Options.GithubId))
 	if err != nil {
 		return err
 	}
